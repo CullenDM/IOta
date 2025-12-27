@@ -6,8 +6,17 @@ extern fn trap_entry() void;
 
 var expected_illegal_probe: bool = false;
 var kernel_vlenb: usize = 0;
+var kernel_vector_context_bytes: usize = 0;
 
 const debug_vector_probe = false;
+
+const VectorContext = extern struct {
+    vstart: usize,
+    vcsr: usize,
+    vl: usize,
+    vtype: usize,
+    regs: [*]u8,
+};
 
 const TrapFrame = extern struct {
     x1: usize,
@@ -117,6 +126,17 @@ fn set_sstatus_vs(state: VsState) void {
     );
 }
 
+fn align_up(value: usize, alignment: usize) usize {
+    const mask = alignment - 1;
+    return (value + mask) & ~mask;
+}
+
+fn calc_vector_context_bytes(vlenb: usize) usize {
+    const control_bytes = 4 * @sizeOf(usize);
+    const reg_bytes = 32 * vlenb;
+    return align_up(control_bytes + reg_bytes, 16);
+}
+
 fn init_trap_vector() void {
     const addr = @intFromPtr(&trap_entry);
     asm volatile ("csrw stvec, %[addr]"
@@ -194,8 +214,12 @@ pub export fn kmain() noreturn {
     sbi_print("Enabling vector unit (sstatus.VS=Initial).\n");
     set_sstatus_vs(.initial);
     kernel_vlenb = read_vlenb();
+    kernel_vector_context_bytes = calc_vector_context_bytes(kernel_vlenb);
     sbi_print("Detected vlenb=");
     print_hex(kernel_vlenb);
+    sbi_print("\n");
+    sbi_print("Vector context bytes (aligned) =");
+    print_hex(kernel_vector_context_bytes);
     sbi_print("\n");
 
     while (true) {

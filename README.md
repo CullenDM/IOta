@@ -30,16 +30,16 @@ This repository is the starting point for a vector-first RISC-V kernel in Zig. T
    * Action: Implement a helper `riscv.setStatusVS(state: VSState)`.
    * Requirement: Set `sstatus` bits [10:9] to `01` (Initial).
    * Verification: Read `vlenb` successfully after enabling and print bytes to UART.
-3. Task 2.1.3: Dynamic Sizing Calculation
-   * Action: Create global `kernel_vlenb` (`u64`).
-   * Logic: Compute context size as `(32 * vlenb) + 8 (vstart) + 8 (vcsr) + 8 (vl) + 8 (vtype)`.
-   * Requirement: Round total size up to 16-byte alignment.
+3. ~~Task 2.1.3: Dynamic Sizing Calculation~~
+   * ~~Action: Create global `kernel_vlenb` (`u64`).~~
+   * ~~Logic: Compute context size as `(32 * vlenb) + 8 (vstart) + 8 (vcsr) + 8 (vl) + 8 (vtype)`.~~
+   * ~~Requirement: Round total size up to 16-byte alignment.~~
 
 ### Milestone 2.2: Memory Infrastructure
 
-1. Task 2.2.1: The Vector Context Struct
-   * Action: Define a Zig `VectorContext` that holds scalar control registers and a pointer to the register blob.
-   * Constraint: The register blob is runtime-sized; do not embed `[32][vlenb]u8` directly in the struct.
+1. ~~Task 2.2.1: The Vector Context Struct~~
+   * ~~Action: Define a Zig `VectorContext` that holds scalar control registers and a pointer to the register blob.~~
+   * ~~Constraint: The register blob is runtime-sized; do not embed `[32][vlenb]u8` directly in the struct.~~
 2. Task 2.2.2: The Slab Allocator
    * Action: Implement a simple slab allocator for vector contexts.
    * Logic: After discovering `vlenb`, carve a region into fixed-size blocks of `(32 * vlenb)` plus control space.
