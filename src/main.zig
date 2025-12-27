@@ -4,6 +4,11 @@ extern var __bss_start: u8;
 extern var __bss_end: u8;
 extern fn trap_entry() void;
 
+var expected_illegal_probe: bool = false;
+var kernel_vlenb: usize = 0;
+
+const debug_vector_probe = false;
+
 const TrapFrame = extern struct {
     x1: usize,
     x2: usize,
@@ -79,6 +84,39 @@ fn print_hex(value: usize) void {
     }
 }
 
+fn read_vlenb() usize {
+    var value: usize = 0;
+    asm volatile ("csrr %0, vlenb"
+        : "=r" (value),
+        :
+        : "memory"
+    );
+    return value;
+}
+
+const VsState = enum(u2) {
+    off = 0,
+    initial = 1,
+    clean = 2,
+    dirty = 3,
+};
+
+fn set_sstatus_vs(state: VsState) void {
+    const mask: usize = @as(usize, 0x3) << 9;
+    var current: usize = 0;
+    asm volatile ("csrr %0, sstatus"
+        : "=r" (current),
+        :
+        : "memory"
+    );
+    current = (current & ~mask) | (@as(usize, @intFromEnum(state)) << 9);
+    asm volatile ("csrw sstatus, %0"
+        :
+        : "r" (current),
+        : "memory"
+    );
+}
+
 fn init_trap_vector() void {
     const addr = @intFromPtr(&trap_entry);
     asm volatile ("csrw stvec, %[addr]"
@@ -90,6 +128,7 @@ fn init_trap_vector() void {
 
 pub export fn trap_handler(frame: *TrapFrame) void {
     const scause_ecall_s_mode: usize = 9;
+    const scause_illegal_instruction: usize = 2;
     const is_interrupt = (frame.scause >> (@bitSizeOf(usize) - 1)) == 1;
     const code = frame.scause & ((@as(usize, 1) << (@bitSizeOf(usize) - 1)) - 1);
 
@@ -108,14 +147,30 @@ pub export fn trap_handler(frame: *TrapFrame) void {
     sbi_print("\n");
 
     if (!is_interrupt) {
-        if (code == scause_ecall_s_mode) {
-            sbi_print("[trap] handled s-mode ecall, advancing sepc\n");
-            frame.sepc += 4;
-        } else {
-            sbi_print("[trap] unhandled exception, halting\n");
-            while (true) {
-                asm volatile ("wfi");
-            }
+        switch (code) {
+            scause_ecall_s_mode => {
+                sbi_print("[trap] handled s-mode ecall, advancing sepc\n");
+                frame.sepc += 4;
+            },
+            scause_illegal_instruction => {
+                sbi_print("[trap] illegal instruction\n");
+                if (expected_illegal_probe) {
+                    expected_illegal_probe = false;
+                    sbi_print("[trap] expected probe, advancing sepc\n");
+                    frame.sepc += 4;
+                } else {
+                    sbi_print("[trap] unexpected illegal instruction, halting\n");
+                    while (true) {
+                        asm volatile ("wfi");
+                    }
+                }
+            },
+            else => {
+                sbi_print("[trap] unhandled exception, halting\n");
+                while (true) {
+                    asm volatile ("wfi");
+                }
+            },
         }
     }
 }
@@ -127,6 +182,21 @@ pub export fn kmain() noreturn {
     sbi_print("Triggering S-mode ecall to validate trap handling.\n");
     asm volatile ("ecall");
     sbi_print("Back in kmain! Trap handled.\n");
+    if (debug_vector_probe) {
+        sbi_print("Phase 2: probing vlenb with VS off (expect illegal instruction).\n");
+        expected_illegal_probe = true;
+        _ = read_vlenb();
+        if (expected_illegal_probe) {
+            sbi_print("[vector-first] warning: vlenb read did not trap.\n");
+            expected_illegal_probe = false;
+        }
+    }
+    sbi_print("Enabling vector unit (sstatus.VS=Initial).\n");
+    set_sstatus_vs(.initial);
+    kernel_vlenb = read_vlenb();
+    sbi_print("Detected vlenb=");
+    print_hex(kernel_vlenb);
+    sbi_print("\n");
 
     while (true) {
         asm volatile ("wfi");
