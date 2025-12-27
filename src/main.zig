@@ -1,12 +1,11 @@
-const std = @import("std");
+const kernel_config = @import("kernel_config.zig");
+const riscv = @import("riscv.zig");
 
 extern var __bss_start: u8;
 extern var __bss_end: u8;
 extern fn trap_entry() void;
 
 var expected_illegal_probe: bool = false;
-var kernel_vlenb: usize = 0;
-var kernel_vector_context_bytes: usize = 0;
 
 const debug_vector_probe = false;
 
@@ -93,50 +92,6 @@ fn print_hex(value: usize) void {
     }
 }
 
-fn read_vlenb() usize {
-    var value: usize = 0;
-    asm volatile ("csrr %0, vlenb"
-        : "=r" (value),
-        :
-        : "memory"
-    );
-    return value;
-}
-
-const VsState = enum(u2) {
-    off = 0,
-    initial = 1,
-    clean = 2,
-    dirty = 3,
-};
-
-fn set_sstatus_vs(state: VsState) void {
-    const mask: usize = @as(usize, 0x3) << 9;
-    var current: usize = 0;
-    asm volatile ("csrr %0, sstatus"
-        : "=r" (current),
-        :
-        : "memory"
-    );
-    current = (current & ~mask) | (@as(usize, @intFromEnum(state)) << 9);
-    asm volatile ("csrw sstatus, %0"
-        :
-        : "r" (current),
-        : "memory"
-    );
-}
-
-fn align_up(value: usize, alignment: usize) usize {
-    const mask = alignment - 1;
-    return (value + mask) & ~mask;
-}
-
-fn calc_vector_context_bytes(vlenb: usize) usize {
-    const control_bytes = 4 * @sizeOf(usize);
-    const reg_bytes = 32 * vlenb;
-    return align_up(control_bytes + reg_bytes, 16);
-}
-
 fn init_trap_vector() void {
     const addr = @intFromPtr(&trap_entry);
     asm volatile ("csrw stvec, %[addr]"
@@ -205,21 +160,20 @@ pub export fn kmain() noreturn {
     if (debug_vector_probe) {
         sbi_print("Phase 2: probing vlenb with VS off (expect illegal instruction).\n");
         expected_illegal_probe = true;
-        _ = read_vlenb();
+        _ = riscv.readVlenb();
         if (expected_illegal_probe) {
             sbi_print("[vector-first] warning: vlenb read did not trap.\n");
             expected_illegal_probe = false;
         }
     }
     sbi_print("Enabling vector unit (sstatus.VS=Initial).\n");
-    set_sstatus_vs(.initial);
-    kernel_vlenb = read_vlenb();
-    kernel_vector_context_bytes = calc_vector_context_bytes(kernel_vlenb);
+    riscv.setStatusVS(.initial);
+    kernel_config.init();
     sbi_print("Detected vlenb=");
-    print_hex(kernel_vlenb);
+    print_hex(@intCast(kernel_config.getVlenb()));
     sbi_print("\n");
     sbi_print("Vector context bytes (aligned) =");
-    print_hex(kernel_vector_context_bytes);
+    print_hex(kernel_config.getVectorContextSize());
     sbi_print("\n");
 
     while (true) {

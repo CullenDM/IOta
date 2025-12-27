@@ -47,9 +47,9 @@ This repository is the starting point for a vector-first RISC-V kernel in Zig. T
 
 ### Milestone 2.3: The "Vector Guard" (Kernel Safety)
 
-1. Task 2.3.1: Preemption Primitives
-   * Action: Implement `intr_disable()` and `intr_restore(flags)`.
-   * Requirement: Use atomic CSR operations (e.g., `csrci sstatus, 2`).
+1. ~~Task 2.3.1: Preemption Primitives~~
+   * ~~Action: Implement `intr_disable()` and `intr_restore(flags)`.~~
+   * ~~Requirement: Use atomic CSR operations (e.g., `csrci sstatus, 2`).~~
 2. Task 2.3.2: The Guard Object
    * Action: Create the `VectorGuard` struct in Zig.
    * Logic (enter):
