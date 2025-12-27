@@ -89,6 +89,7 @@ fn init_trap_vector() void {
 }
 
 pub export fn trap_handler(frame: *TrapFrame) void {
+    const scause_ecall_s_mode: usize = 9;
     const is_interrupt = (frame.scause >> (@bitSizeOf(usize) - 1)) == 1;
     const code = frame.scause & ((@as(usize, 1) << (@bitSizeOf(usize) - 1)) - 1);
 
@@ -100,13 +101,32 @@ pub export fn trap_handler(frame: *TrapFrame) void {
     print_hex(frame.scause);
     sbi_print(" code=");
     print_hex(code);
+    sbi_print(" sepc=");
+    print_hex(frame.sepc);
+    sbi_print(" stval=");
+    print_hex(frame.stval);
     sbi_print("\n");
+
+    if (!is_interrupt) {
+        if (code == scause_ecall_s_mode) {
+            sbi_print("[trap] handled s-mode ecall, advancing sepc\n");
+            frame.sepc += 4;
+        } else {
+            sbi_print("[trap] unhandled exception, halting\n");
+            while (true) {
+                asm volatile ("wfi");
+            }
+        }
+    }
 }
 
 pub export fn kmain() noreturn {
     init_trap_vector();
     sbi_print("[vector-first] booted into Zig kmain()\n");
     sbi_print("Phase 1: OpenSBI console ready.\n");
+    sbi_print("Triggering S-mode ecall to validate trap handling.\n");
+    asm volatile ("ecall");
+    sbi_print("Back in kmain! Trap handled.\n");
 
     while (true) {
         asm volatile ("wfi");
