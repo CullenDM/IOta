@@ -20,6 +20,7 @@ pub fn build(b: *std.Build) void {
     exe.entry = .{ .symbol_name = "_start" };
     exe.setLinkerScript(.{ .path = "linker.ld" });
     exe.addAssemblyFile(.{ .path = "src/entry.S" });
+    exe.addAssemblyFile(.{ .path = "src/trap.S" });
     exe.strip = false;
 
     b.installArtifact(exe);

@@ -9,8 +9,8 @@ This repository is the starting point for a vector-first RISC-V kernel in Zig. P
 1. ~~Set up `build.zig` to cross-compile a freestanding `riscv64-unknown-none` kernel and link with a custom linker script.~~
 2. ~~Create the minimal assembly entry point (`_start`) that sets up a stack and jumps into Zig.~~
 3. ~~Add a tiny OpenSBI-backed UART console helper to prove early boot (`kmain()` hello).~~
-4. Define and install the S-mode trap vector (`stvec`) with a Zig trap handler.
-5. Implement a `TrapFrame` for x1-x31 and `scause` decoding to separate interrupts from exceptions.
+4. ~~Define and install the S-mode trap vector (`stvec`) with a Zig trap handler.~~
+5. ~~Implement a `TrapFrame` for x1-x31 and `scause` decoding to separate interrupts from exceptions.~~
 
 ## Build & Run
 
