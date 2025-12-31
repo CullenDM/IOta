@@ -40,27 +40,27 @@ This repository is the starting point for a vector-first RISC-V kernel in Zig. T
 1. ~~Task 2.2.1: The Vector Context Struct~~
    * ~~Action: Define a Zig `VectorContext` that holds scalar control registers and a pointer to the register blob.~~
    * ~~Constraint: The register blob is runtime-sized; do not embed `[32][vlenb]u8` directly in the struct.~~
-2. Task 2.2.2: The Slab Allocator
-   * Action: Implement a simple slab allocator for vector contexts.
-   * Logic: After discovering `vlenb`, carve a region into fixed-size blocks of `(32 * vlenb)` plus control space.
-   * Requirement: `alloc()` must return a pointer aligned to `vlenb` (or at least 16 bytes).
+2. ~~Task 2.2.2: The Slab Allocator~~
+   * ~~Action: Implement a simple slab allocator for vector contexts.~~
+   * ~~Logic: After discovering `vlenb`, carve a region into fixed-size blocks of `(32 * vlenb)` plus control space.~~
+   * ~~Requirement: `alloc()` must return a pointer aligned to `vlenb` (or at least 16 bytes).~~
 
 ### Milestone 2.3: The "Vector Guard" (Kernel Safety)
 
 1. ~~Task 2.3.1: Preemption Primitives~~
    * ~~Action: Implement `intr_disable()` and `intr_restore(flags)`.~~
    * ~~Requirement: Use atomic CSR operations (e.g., `csrci sstatus, 2`).~~
-2. Task 2.3.2: The Guard Object
-   * Action: Create the `VectorGuard` struct in Zig.
-   * Logic (enter):
-     * Disable interrupts.
-     * If the current vector owner is a user process and `sstatus.VS == Dirty`, save its registers to its `VectorContext`.
-     * Set `current_vector_owner = .Kernel`.
-     * Set `sstatus.VS = Initial` for kernel use.
-   * Logic (leave):
-     * Set `current_vector_owner = .None`.
-     * Set `sstatus.VS = Off` (or `Initial` if desired).
-     * Restore interrupts.
+2. ~~Task 2.3.2: The Guard Object~~
+   * ~~Action: Create the `VectorGuard` struct in Zig.~~
+   * ~~Logic (enter):~~
+     * ~~Disable interrupts.~~
+     * ~~If the current vector owner is a user process and `sstatus.VS == Dirty`, save its registers to its `VectorContext`.~~
+     * ~~Set `current_vector_owner = .Kernel`.~~
+     * ~~Set `sstatus.VS = Initial` for kernel use.~~
+   * ~~Logic (leave):~~
+     * ~~Set `current_vector_owner = .None`.~~
+     * ~~Set `sstatus.VS = Off` (or `Initial` if desired).~~
+     * ~~Restore interrupts.~~
 
 ### Milestone 2.4: Lazy Context Switching (User Space)
 

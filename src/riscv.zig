@@ -21,6 +21,17 @@ pub fn setStatusVS(state: VsState) void {
     );
 }
 
+pub fn getStatusVS() VsState {
+    var current: usize = 0;
+    asm volatile ("csrr %0, sstatus"
+        : "=r" (current),
+        :
+        : "memory"
+    );
+    const field: u2 = @intCast((current >> 9) & 0x3);
+    return @enumFromInt(field);
+}
+
 pub fn readVlenb() usize {
     var value: usize = 0;
     asm volatile ("csrr %0, vlenb"

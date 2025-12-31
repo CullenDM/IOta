@@ -1,5 +1,7 @@
 const kernel_config = @import("kernel_config.zig");
 const riscv = @import("riscv.zig");
+const vector_guard = @import("vector_guard.zig");
+const vector_slab = @import("vector_slab.zig");
 
 extern var __bss_start: u8;
 extern var __bss_end: u8;
@@ -8,14 +10,6 @@ extern fn trap_entry() void;
 var expected_illegal_probe: bool = false;
 
 const debug_vector_probe = false;
-
-const VectorContext = extern struct {
-    vstart: usize,
-    vcsr: usize,
-    vl: usize,
-    vtype: usize,
-    regs: [*]u8,
-};
 
 const TrapFrame = extern struct {
     x1: usize,
@@ -175,6 +169,18 @@ pub export fn kmain() noreturn {
     sbi_print("Vector context bytes (aligned) =");
     print_hex(kernel_config.getVectorContextSize());
     sbi_print("\n");
+    vector_slab.init();
+    sbi_print("Vector slab block size=");
+    print_hex(vector_slab.blockSize());
+    sbi_print(" blocks=");
+    print_hex(vector_slab.totalBlocks());
+    sbi_print("\n");
+    {
+        var guard = vector_guard.VectorGuard.enter();
+        sbi_print("Vector guard entered for kernel usage.\n");
+        guard.leave();
+        sbi_print("Vector guard exited.\n");
+    }
 
     while (true) {
         asm volatile ("wfi");
